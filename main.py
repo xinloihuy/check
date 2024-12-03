@@ -1,4 +1,5 @@
-// hàm này để tộng hợp code nha
+# hàm này để tộng hợp code nha
+import json
 from datetime import date, datetime
 from typing import List
 
@@ -31,7 +32,7 @@ class Goal:
 
 # Class User
 class User:
-    def __init__(self, user_id: int, name: str, email: str):
+    def __init__(self, user_id: int, name: str, email: str, data_file: str):
         self.user_id = user_id
         self.name = name
         self.email = email
@@ -39,10 +40,64 @@ class User:
         self.transaction_list = []
         self.report_list = []
         self.goal_list = []
+        self.data_file = data_file
+
+    def save_to_file(self):
+        """Lưu thông tin người dùng vào file JSON"""
+        data = {
+            "user_id": self.user_id,
+            "name": self.name,
+            "email": self.email,
+            "account_list": self.account_list,
+            "transaction_list": self.transaction_list,
+            "report_list": self.report_list,
+            "goal_list": [
+                {
+                    "goal_id": goal.goal_id,
+                    "goal_name": goal.goal_name,
+                    "goal_amount": goal.goal_amount,
+                    "accumulated_amount": goal.accumulated_amount,
+                    "target_date": goal.target_date.strftime("%Y-%m-%d"),
+                }
+                for goal in self.goal_list
+            ],
+        }
+        with open(self.data_file, "w") as f:
+            json.dump(data, f)
+        print("Thông tin đã được lưu")
+
+    @staticmethod
+    def load_from_file(file_path: str):
+        try:
+            with open(file_path, "r") as f:
+                data = json.load(f)
+                user = User(
+                    user_id=data["user_id"],
+                    name=data["name"],
+                    email=data["email"],
+                    data_file=file_path,
+                )
+                user.account_list = data.get("account_list", [])
+                user.transaction_list = data.get("transaction_list", [])
+                user.report_list = data.get("report_list", [])
+                for goal_data in data.get("goal_list", []):
+                    target_date = datetime.strptime(goal_data["target_date"], "%Y-%m-%d").date()
+                    goal = Goal(
+                        goal_id=goal_data["goal_id"],
+                        goal_name=goal_data["goal_name"],
+                        goal_amount=goal_data["goal_amount"],
+                        accumulated_amount=goal_data["accumulated_amount"],
+                        target_date=target_date,
+                    )
+                    user.goal_list.append(goal)
+                return user
+        except FileNotFoundError:
+            return None
 
     def create_account(self):
         account_name = input("Nhập tên tài khoản mới: ")
         self.account_list.append(account_name)
+        self.save_to_file()
         print(f"Tài khoản '{account_name}' đã tạo thành công")
 
     def delete_account(self):
@@ -50,6 +105,7 @@ class User:
         account_name = input("Nhập tên tài khoản cần xóa: ")
         if account_name in self.account_list:
             self.account_list.remove(account_name)
+            self.save_to_file()
             print(f"Tài khoản '{account_name}' đã được xóa")
         else:
             print("Tài khoản không tồn tại")
@@ -65,6 +121,7 @@ class User:
 
         new_goal = Goal(goal_id, goal_name, goal_amount, accumulated_amount, target_date)
         self.goal_list.append(new_goal)
+        self.save_to_file()
         print("Mục tiêu tài chính đã được tạo thành công")
 
     def view_goals(self):
@@ -84,9 +141,9 @@ class User:
             if goal.goal_id == goal_id:
                 update_amount = float(input("Nhập số tiền bạn muốn thêm vào tích lũy: "))
                 goal.update_accumulated_amount(update_amount)
+                self.save_to_file()
                 goal.display_goal()
                 return
-
         print("Mục tiêu không tồn tại")
 
     def display_menu(self):
@@ -118,15 +175,21 @@ class User:
 
 
 print("Chào mừng bạn đến với ứng dụng quản lý tài chính cá nhân")
-user_id = int(input("Nhập ID người dùng: "))
-name = input("Nhập tên người dùng: ")
+data_file = "data.json"
 
-while True:
-    email = input("Nhập email người dùng (phải là @gmail.com): ")
-    if email.endswith("@gmail.com"):
-        break
-    else:
-        print("Email không hợp lệ. Vui lòng nhập lại")
+user = User.load_from_file(data_file)
+if not user:
+    user_id = int(input("Nhập ID người dùng: "))
+    name = input("Nhập tên người dùng: ")
 
-user = User(user_id, name, email)
+    while True:
+        email = input("Nhập email người dùng (phải là @gmail.com): ")
+        if email.endswith("@gmail.com"):
+            break
+        else:
+            print("Email không hợp lệ. Vui lòng nhập lại")
+
+    user = User(user_id, name, email, data_file)
+    user.save_to_file()
+
 user.display_menu()
