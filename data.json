@@ -1,0 +1,1 @@
+{"user_id": 1, "name": "Hoa", "email": "hoa@gmail.com", "account_list": ["Hoang"], "transaction_list": [], "report_list": [], "goal_list": [{"goal_id": 123, "goal_name": "Hoang", "goal_amount": 1000000.0, "accumulated_amount": 1001000.0, "target_date": "2024-12-12"}]}
